@@ -6,6 +6,7 @@
   "description": "コトネちゃんが色々な情報を教えてくれます",
   "dependencies": {
     "hubot": "^2.19.0",
+    "hubot-conversation": "^1.1.1",
     "hubot-diagnostics": "0.0.2",
     "hubot-docomo-dialogue": "https://github.com/bouzuya/hubot-docomo-dialogue/archive/master.tar.gz",
     "hubot-google-images": "^0.2.7",
