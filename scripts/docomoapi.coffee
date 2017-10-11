@@ -22,7 +22,7 @@ module.exports = (robot) ->
     cmd = help.split(' ')[1]
     cmds.push(cmd) if cmds.indexOf(cmd) is -1
 
-  robot.respond /(.+)$/i, (msg) ->
+  robot.respond /(\S+)$/i, (msg) ->
     unless API_KEY?
       return
     cmd = msg.match[1].split(' ')[0]
