@@ -1,47 +1,55 @@
-# Description
-#   どのコマンドにも一致しない場合に雑談
+# Description:
+#   DOCOMOの雑談APIを利用した雑談
 #
-# Configuration:
-#   HUBOT_DOCOMO_DIALOGUE_API_KEY
-#
-# Notes:
-#   会話の継続。context, mode を保存。ただし3分経過したら破棄。
+# Author:
+#   FromAtom
 #
 # Reference:
-#   https://github.com/hico-horiuchi/huboco/blob/master/scripts/z_dialogue.coffee
-#
+# https://gist.github.com/RVIRUS0817/cf1200e556359708f65f#file-docomoapi-coffee
+
+getTimeDiffAsMinutes = (old_msec) ->
+  now = new Date()
+  old = new Date(old_msec)
+  diff_msec = now.getTime() - old.getTime()
+  diff_minutes = parseInt( diff_msec / (60*1000), 10 )
+  return diff_minutes
 
 module.exports = (robot) ->
-  ERR_MSG = 'docomo 雑談対話APIの呼出に失敗しました。'
-  API_KEY = process.env.DOCOMO__API_KEY
+  robot.respond /(\S+)/i, (msg) ->
+    DOCOMO_API_KEY = process.env.DOCOMO_API_KEY
+    message = msg.match[1]
+    return unless DOCOMO_API_KEY && message
 
-  status = { place: '東京' }
+    ## ContextIDを読み込む
+    KEY_DOCOMO_CONTEXT = 'docomo-talk-context'
+    context = robot.brain.get KEY_DOCOMO_CONTEXT || ''
 
-  cmds = []
-  for help in robot.helpCommands()
-    cmd = help.split(' ')[1]
-    cmds.push(cmd) if cmds.indexOf(cmd) is -1
+    ## 前回会話してからの経過時間調べる
+    KEY_DOCOMO_CONTEXT_TTL = 'docomo-talk-context-ttl'
+    TTL_MINUTES = 20
+    old_msec = robot.brain.get KEY_DOCOMO_CONTEXT_TTL
+    diff_minutes = getTimeDiffAsMinutes old_msec
 
-  robot.respond /(\S+)$/i, (msg) ->
-    unless API_KEY?
-      return
-    cmd = msg.match[1].split(' ')[0]
-    unless cmds.indexOf(cmd) is -1
-      return
-    status.nickname = msg.envelope.user.name
-    status.utt = msg.match[1]
-    now = new Date().getTime()
-    if now - status.time > 3 * 60 * 1000
-      status.context = ''
-      status.mode = ''
-    msg
-      .http('https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue')
-      .query(APIKEY: API_KEY)
-      .header('Content-Type', 'application/json')
-      .post(JSON.stringify(status)) (err, res, body) ->
-        if err? or res.statusCode isnt 200
-          return msg.reply("#{ERR_MSG}\n```\n#{err}\n```")
-        msg.reply(JSON.parse(body).utt)
-        status.time = now
-        status.context = JSON.parse(body).context
-        status.mode = JSON.parse(body).mode
+    ## 前回会話してから一定時間経っていたらコンテキストを破棄
+    if diff_minutes > TTL_MINUTES
+      context = ''
+
+    url = 'https://api.apigw.smt.docomo.ne.jp/dialogue/v1/dialogue?APIKEY=' + DOCOMO_API_KEY
+    user_name = msg.message.user.name
+
+    request = require('request');
+    request.post
+      url: url
+      json:
+        utt: message
+        nickname: user_name if user_name
+        context: context if context
+      , (err, response, body) ->
+        ## ContextIDの保存
+        robot.brain.set KEY_DOCOMO_CONTEXT, body.context
+
+        ## 会話発生時間の保存
+        now_msec = new Date().getTime()
+        robot.brain.set KEY_DOCOMO_CONTEXT_TTL, now_msec
+
+        msg.send body.utt
