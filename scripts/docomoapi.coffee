@@ -15,10 +15,20 @@ getTimeDiffAsMinutes = (old_msec) ->
   return diff_minutes
 
 module.exports = (robot) ->
+  cmdsUpdated = false
+  cmds = []
+
   robot.respond /(\S+)/i, (msg) ->
     DOCOMO_API_KEY = process.env.DOCOMO_API_KEY
     message = msg.match[1]
     return unless DOCOMO_API_KEY && message
+
+    if !cmdsUpdated
+      for help in robot.helpCommands()
+        cmd = help.split(' ')[1]
+        cmds.push cmd if cmds.indexOf(cmd) is -1
+      cmdsUpdated = true
+    return unless cmds.indexOf(message.split(' ')[0]) is -1
 
     ## ContextIDを読み込む
     KEY_DOCOMO_CONTEXT = 'docomo-talk-context'

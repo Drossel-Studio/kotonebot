@@ -1,6 +1,8 @@
 # Description:
 #   get a latest build link on unity cloud build
 #
+# Commands:
+#   hubot latest - 最新のビルドのリンクを教えてくれます
 
 module.exports = (robot) ->
     robot.respond /latest (.*)/i, (msg) ->

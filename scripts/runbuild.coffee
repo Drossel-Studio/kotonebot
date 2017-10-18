@@ -2,7 +2,7 @@
 #   create new build on unity cloud build
 #
 # Commands:
-#   hubot teach curl - building curl command in coversation with bot.
+#   hubot newbuild - 新しいビルド命令を送信します
 
 Conversation = require('hubot-conversation');
 
